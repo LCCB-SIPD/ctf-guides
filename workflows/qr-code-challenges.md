@@ -77,9 +77,64 @@ graph TD
 
 ---
 
-## Complete Windows Toolkit Setup
+## Complete Toolkit Setup
 
-### Streamlined Installation (Standardized on winget for Windows 10/11)
+### Option A: Kali Linux Setup (Fastest for CTF)
+
+Kali Linux comes with many QR code tools pre-installed, making it the quickest platform for CTF competitions.
+
+```bash
+# Update Kali first
+sudo apt update && sudo apt full-upgrade -y
+
+# Core QR decoders (some pre-installed)
+sudo apt install -y zbar-tools python3-pyzbar
+sudo apt install -y python3-pil python3-opencv
+sudo apt install -y qrencode  # For generating QR codes
+
+# Image processing tools (mostly pre-installed)
+sudo apt install -y imagemagick gimp
+sudo apt install -y ffmpeg
+sudo apt install -y exiftool
+
+# Forensic tools (pre-installed on Kali)
+sudo apt install -y binwalk foremost
+sudo apt install -y steghide stegcracker
+sudo apt install -y pngcheck
+
+# Python packages for QR analysis
+pip3 install pyzbar[scripts] pillow opencv-python numpy
+pip3 install qrcode[pil] requests base45 reedsolo
+pip3 install pyquirc zbarlight
+
+# Install zsteg for LSB analysis (PNG/BMP)
+sudo gem install zsteg
+
+# Install StegSolve (requires Java)
+sudo apt install -y default-jdk
+wget -O /opt/stegsolve.jar https://github.com/eugenekolo/sec-tools/raw/master/stego/stegsolve/stegsolve/stegsolve.jar
+echo 'java -jar /opt/stegsolve.jar "$@"' | sudo tee /usr/local/bin/stegsolve
+sudo chmod +x /usr/local/bin/stegsolve
+
+# Install ZXing command line decoder
+cd /opt
+sudo git clone https://github.com/zxing-cpp/zxing-cpp.git
+cd zxing-cpp
+sudo cmake -S . -B build -DBUILD_EXAMPLES=ON
+sudo cmake --build build -j$(nproc)
+sudo cmake --install build
+# Now ZXingReader is available system-wide
+
+# Verify installations
+echo "=== Checking QR CTF tools on Kali ==="
+for tool in zbarimg exiftool ffmpeg binwalk steghide pngcheck; do
+    which $tool && echo "✓ $tool installed" || echo "✗ $tool missing"
+done
+```
+
+### Option B: Windows Toolkit Setup
+
+#### Streamlined Installation (Standardized on winget for Windows 10/11)
 
 ```powershell
 # Use winget (native to Windows 10/11) for consistency
@@ -231,20 +286,68 @@ sudo apt update && sudo apt install binwalk
 
 ### Quick Tool Reference Card (Updated)
 
-| Tool | Purpose | Command Example | Key Strength | When to Use |
-|------|---------|-----------------|--------------|-------------|
-| **ZXingReader** | Primary decode | `ZXingReader -q file.png` | ECI support, binary data | First attempt, UTF-8 text |
-| **zbarimg** | Secondary decode | `zbarimg -q file.png` | Noise tolerance | Blurry/camera photos |
-| **quirc/pyquirc** | Tertiary decode | `pyquirc_decode file.png` | Edge cases | When others fail |
-| **QRazyBox** | Manual repair | [Web interface](https://merri.cx/qrazybox/) | Reed-Solomon recovery | Visible damage |
-| **GIMP** | Image editing | GUI application | Pattern reconstruction | Pre-processing |
-| **StegSolve** | Bit plane analysis | `java -jar stegsolve.jar` | Hidden visual data | After normal decode |
-| **zsteg** | LSB stego | `zsteg -a file.png` | PNG/BMP steganography | PNG/BMP only |
-| **CyberChef** | Payload decode | [Web](https://gchq.github.io/CyberChef/) or [Download offline HTML](https://github.com/gchq/CyberChef/releases) | Chained transformations | Encoded payloads |
-| **FFmpeg** | Frame extraction | `ffmpeg -i file.gif -vf fps=3 frame_%04d.png` | Animated sequences | GIF/video QRs |
-| **pngcheck** | PNG analysis | `pngcheck -v file.png` | Corrupted headers | PNG won't open |
-| **ExifTool** | Metadata | `exiftool file.png` | Hidden comments | Always check |
-| **strings.exe** | String search | `strings.exe -n 4 file.png` | Quick text search | Initial recon |
+| Tool | Purpose | Command Example | Kali Path | Key Strength | When to Use |
+|------|---------|-----------------|-----------|--------------|-------------|
+| **zbarimg** | Primary decode | `zbarimg -q file.png` | `/usr/bin/zbarimg` | Noise tolerance | First attempt on Kali |
+| **ZXingReader** | Secondary decode | `ZXingReader -q file.png` | `/usr/local/bin/` (after install) | ECI support, binary data | UTF-8 text |
+| **quirc/pyquirc** | Tertiary decode | `pyquirc_decode file.png` | Python module | Edge cases | When others fail |
+| **QRazyBox** | Manual repair | [Web interface](https://merri.cx/qrazybox/) | N/A (web-based) | Reed-Solomon recovery | Visible damage |
+| **GIMP** | Image editing | `gimp` | `/usr/bin/gimp` | Pattern reconstruction | Pre-processing |
+| **StegSolve** | Bit plane analysis | `stegsolve` or `java -jar /opt/stegsolve.jar` | `/opt/stegsolve.jar` | Hidden visual data | After normal decode |
+| **zsteg** | LSB stego | `zsteg -a file.png` | Ruby gem | PNG/BMP steganography | PNG/BMP only |
+| **CyberChef** | Payload decode | [Web](https://gchq.github.io/CyberChef/) | N/A (use browser) | Chained transformations | Encoded payloads |
+| **FFmpeg** | Frame extraction | `ffmpeg -i file.gif -vf fps=3 frame_%04d.png` | `/usr/bin/ffmpeg` | Animated sequences | GIF/video QRs |
+| **pngcheck** | PNG analysis | `pngcheck -v file.png` | `/usr/bin/pngcheck` | Corrupted headers | PNG won't open |
+| **ExifTool** | Metadata | `exiftool file.png` | `/usr/bin/exiftool` | Hidden comments | Always check |
+| **strings** | String search | `strings -n 4 file.png` | `/usr/bin/strings` | Quick text search | Initial recon |
+| **binwalk** | File carving | `binwalk -e file.png` | `/usr/bin/binwalk` | Embedded files | Pre-installed on Kali |
+| **foremost** | Data recovery | `foremost -i file.png` | `/usr/bin/foremost` | Recover hidden files | Pre-installed on Kali |
+
+### Platform Comparison for QR CTF Challenges
+
+| Feature | Kali Linux | Windows | WSL2 | Ubuntu |
+|---------|------------|---------|------|--------|
+| **Setup Time** | 5 minutes | 30 minutes | 25 minutes | 20 minutes |
+| **Pre-installed QR tools** | zbar, exiftool, ffmpeg | None | None | Basic only |
+| **Steganography tools** | ✅ Complete suite | ⚠️ Manual install | ⚠️ Manual install | ⚠️ Manual install |
+| **GUI tools** | ✅ GIMP included | ✅ Native GUI | ❌ Terminal only | ⚠️ Install needed |
+| **Python libraries** | ⚠️ pip install needed | ⚠️ pip install | ⚠️ pip install | ⚠️ pip install |
+| **Forensics tools** | ✅ All pre-installed | ❌ Manual | ❌ Manual | ❌ Manual |
+| **Learning curve** | Low (all ready) | Medium | Medium | Medium |
+
+### Kali Linux Advantages for QR Challenges
+
+1. **Pre-installed Forensic Tools**
+   ```bash
+   # Already available on fresh Kali install:
+   binwalk        # Extract embedded files
+   foremost       # File carving
+   steghide       # Steganography tool
+   exiftool       # Metadata analysis
+   strings        # String extraction
+   ffmpeg         # Video/GIF processing
+   imagemagick    # Image manipulation
+   ```
+
+2. **Quick Start Commands on Kali**
+   ```bash
+   # Immediate QR analysis (no installation needed):
+   zbarimg challenge.png
+   strings challenge.png | grep -i flag
+   exiftool challenge.png | grep -i comment
+   binwalk -e challenge.png
+   steghide extract -sf challenge.png -p ""
+   ```
+
+3. **Kali-Specific Paths**
+   ```bash
+   # Tool locations on Kali:
+   /usr/share/wordlists/       # For steganography passwords
+   /usr/bin/zbarimg            # QR decoder
+   /usr/bin/steghide           # Steganography
+   /usr/bin/binwalk            # File carving
+   /opt/                       # Custom installed tools
+   ```
 
 ---
 
@@ -1327,6 +1430,44 @@ solver.solve()
 
 ### Platform-Specific Issues
 
+#### Kali Linux Deployment Options
+
+**1. Kali on VirtualBox/VMware (Recommended for CTF)**
+```bash
+# Download pre-built VM: https://www.kali.org/get-kali/#kali-virtual-machines
+# Import OVA, start VM, login: kali/kali
+
+# Enable clipboard sharing (VirtualBox):
+sudo apt install -y virtualbox-guest-x11
+# Devices → Shared Clipboard → Bidirectional
+
+# Mount shared folder for file transfer:
+sudo mkdir /mnt/shared
+sudo mount -t vboxsf ShareName /mnt/shared
+```
+
+**2. Kali via Docker (Quick Testing)**
+```bash
+# Run Kali with current directory mounted:
+docker run -it --rm -v $(pwd):/workspace kalilinux/kali-rolling
+
+# Inside container:
+apt update && apt install -y zbar-tools binwalk exiftool steghide
+cd /workspace
+zbarimg challenge.png
+```
+
+**3. Kali on WSL2 (Windows Integration)**
+```powershell
+# Install from Microsoft Store or:
+wsl --install -d kali-linux
+
+# Inside Kali on WSL2:
+sudo apt update && sudo apt full-upgrade -y
+# GUI apps work with WSLg (Windows 11)
+sudo apt install -y kali-linux-large  # Full toolset
+```
+
 **Windows PowerShell Encoding:**
 ```powershell
 # Fix encoding issues with tool output
@@ -1349,6 +1490,33 @@ java -Xmx2048m -jar stegsolve.jar
 # Ruby encoding for zsteg
 set RUBYOPT=-EUTF-8
 gem install zsteg
+```
+
+#### Kali-Specific Troubleshooting
+
+**Missing Tools on Kali:**
+```bash
+# If a tool is missing on Kali:
+sudo apt update
+sudo apt install kali-linux-default  # Base tools
+sudo apt install kali-linux-large    # All tools
+sudo apt install kali-linux-everything  # Complete suite
+
+# Check which metapackage is installed:
+dpkg -l | grep kali-linux
+```
+
+**GPU Support in Kali VM:**
+```bash
+# For hashcat in VirtualBox:
+# 1. Enable 3D Acceleration in VM settings
+# 2. Install guest additions:
+sudo apt install -y virtualbox-guest-x11
+# 3. Reboot VM
+
+# For VMware:
+sudo apt install -y open-vm-tools-desktop
+# Enable "Accelerate 3D graphics" in VM settings
 ```
 
 ---
@@ -2117,6 +2285,62 @@ def process_large_gif(gif_path):
 
 ## Appendix: Emergency Command Reference
 
+### Kali Linux Quick Commands
+```bash
+# === KALI LINUX QUICK REFERENCE ===
+# Most tools are pre-installed on Kali!
+
+# Quick scan (zbar is pre-installed)
+zbarimg challenge.png
+
+# Multiple decoder attempts
+zbarimg -q challenge.png
+python3 -c "from pyzbar import pyzbar; from PIL import Image; print(pyzbar.decode(Image.open('challenge.png')))"
+
+# Forensic analysis (all pre-installed on Kali)
+strings challenge.png | grep -iE "flag|ctf|{"
+exiftool challenge.png | grep -i comment
+binwalk -e challenge.png
+foremost -i challenge.png -o output/
+
+# Steganography checks (pre-installed)
+steghide extract -sf challenge.png -p ""
+steghide extract -sf challenge.png -p "password"
+stegcracker challenge.png /usr/share/wordlists/rockyou.txt
+
+# Image preprocessing with ImageMagick (pre-installed)
+convert challenge.png -negate inverted.png
+convert challenge.png -colorspace Gray -threshold 50% clean.png
+convert challenge.png -bordercolor white -border 20 bordered.png
+convert challenge.png -separate channel_%d.png
+
+# GIF/Video processing (ffmpeg pre-installed)
+ffmpeg -i challenge.gif frame_%04d.png
+
+# Batch processing
+for file in *.png; do zbarimg "$file"; done
+
+# LSB analysis (after installing zsteg)
+zsteg -a challenge.png
+
+# Run StegSolve (after setup)
+stegsolve  # Or: java -jar /opt/stegsolve.jar
+
+# Quick XOR of two images
+python3 -c "
+from PIL import Image
+import numpy as np
+img1 = np.array(Image.open('qr1.png').convert('L'))
+img2 = np.array(Image.open('qr2.png').convert('L'))
+xor = Image.fromarray((img1 ^ img2).astype('uint8'))
+xor.save('xor_result.png')
+"
+
+# Check all installed CTF tools
+dpkg -l | grep -E "zbar|steghide|binwalk|exiftool|ffmpeg"
+```
+
+### Windows PowerShell Commands
 ```powershell
 # Quick Windows Commands
 
@@ -2154,6 +2378,18 @@ magick challenge.png -separate channel_%d.png
 # XOR images in Python
 python -c "from PIL import Image; import numpy as np; print(np.bitwise_xor(np.array(Image.open('q1.png')), np.array(Image.open('q2.png'))))"
 ```
+
+### Quick Comparison: Kali vs Windows Commands
+
+| Task | Kali Linux | Windows |
+|------|------------|---------|
+| **Scan QR** | `zbarimg file.png` (pre-installed) | `zbarimg file.png` (needs install) |
+| **Extract strings** | `strings file.png` (pre-installed) | `strings.exe file.png` (needs Sysinternals) |
+| **Check metadata** | `exiftool file.png` (pre-installed) | `exiftool file.png` (needs install) |
+| **Extract embedded** | `binwalk -e file.png` (pre-installed) | WSL or 7-Zip |
+| **Steganography** | `steghide extract -sf file.png` (pre-installed) | Manual install |
+| **Process GIF** | `ffmpeg -i file.gif out_%d.png` (pre-installed) | `ffmpeg` (needs install) |
+| **Image editing** | `gimp` (pre-installed) | Download GIMP |
 
 ---
 

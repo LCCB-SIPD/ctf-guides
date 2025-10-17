@@ -26,9 +26,69 @@ Purpose: End-to-end guide for analysing and cracking password-protected files in
 
 ---
 
-## Quick Setup Options for Windows Users
+## Quick Setup Options
 
-### Option 1: WSL2-Centric Hybrid Environment (Recommended)
+### Option A: Kali Linux (Native or VM) - Best for CTF Competitions
+
+Kali Linux comes pre-installed with most CTF tools, making it the fastest option for getting started.
+
+#### Native Kali Linux Installation
+```bash
+# If you're already on Kali, update everything first
+sudo apt update && sudo apt full-upgrade -y
+
+# Install/update core CTF password cracking tools (many pre-installed)
+sudo apt install -y hashcat john john-data wordlists
+sudo apt install -y hydra medusa ncrack
+sudo apt install -y aircrack-ng cowpatty
+sudo apt install -y cewl crunch rsmangler
+
+# Install additional utilities
+sudo apt install -y p7zip-full p7zip-rar unrar rar zip unzip
+sudo apt install -y binwalk foremost scalpel sleuthkit
+sudo apt install -y exiftool steghide stegcracker
+sudo apt install -y pdfcrack qpdf poppler-utils
+
+# Update John the Ripper to Jumbo version for latest *2john tools
+cd /opt
+sudo git clone https://github.com/openwall/john.git
+cd john/src
+sudo ./configure && sudo make -j$(nproc)
+sudo make install
+
+# Kali's default wordlists location
+ls -la /usr/share/wordlists/
+# rockyou.txt is already extracted at: /usr/share/wordlists/rockyou.txt
+```
+
+#### Kali Linux in VirtualBox/VMware
+```bash
+# Download Kali VM from: https://www.kali.org/get-kali/#kali-virtual-machines
+# Import the OVA file into VirtualBox/VMware
+# Default credentials: kali/kali
+
+# Enable GPU passthrough for hashcat (VirtualBox)
+# 1. Install VirtualBox Extension Pack
+# 2. Enable 3D Acceleration in VM settings
+# 3. Allocate maximum video memory (256MB)
+
+# For VMware:
+# 1. Enable "Accelerate 3D graphics" in VM settings
+# 2. Install VMware Tools: sudo apt install open-vm-tools-desktop
+```
+
+#### Kali Linux via Docker (Quick Testing)
+```bash
+# Run Kali container with current directory mounted
+docker run -it -v $(pwd):/workspace kalilinux/kali-rolling
+
+# Inside container, install tools
+apt update && apt install -y hashcat john wordlists
+```
+
+### Option B: Windows Users
+
+#### Option 1: WSL2-Centric Hybrid Environment (Recommended for Windows)
 ```powershell
 # Enable WSL2 (run in elevated PowerShell)
 wsl --install
@@ -99,7 +159,7 @@ Without the WSL2 backend, NVIDIA drivers for WSL, and the container toolkit, `ha
 | **Hashcat** | `choco install hashcat` or [hashcat.net](https://hashcat.net/hashcat/) | ✅ | Near-native performance on both Windows and WSL2 when vendor drivers are current; use the Windows build for quick smoke tests, but do sustained cracking inside WSL2. |
 | **John the Ripper Jumbo** | `choco install john-the-ripper` | ✅ (OpenCL build) | Ships with GPU kernels when OpenCL runtime is installed; still excels at CPU-heavy or exotic formats. |
 
-#### 🐧 WSL/Linux Core Tooling
+#### 🐧 Linux Core Tooling (WSL2/Ubuntu/Debian)
 ```bash
 # Essential cracking stack inside WSL2
 sudo apt install -y hashcat john
@@ -107,6 +167,36 @@ sudo apt install -y build-essential python3-pip git
 
 # Optional: clone jumbo for bleeding-edge *2john utilities
 git clone https://github.com/openwall/john.git
+```
+
+#### 🐉 Kali Linux Advantages
+```bash
+# Kali comes with these pre-installed:
+# - hashcat (with GPU support if drivers installed)
+# - john (Jumbo version)
+# - wordlists (rockyou.txt, SecLists partial)
+# - hydra, medusa (network password crackers)
+# - aircrack-ng (WiFi password cracking)
+# - All *2john utilities pre-installed
+
+# Kali-specific paths:
+/usr/share/wordlists/           # Wordlists location
+/usr/share/john/                # John config and rules
+/usr/share/hashcat/             # Hashcat rules and masks
+/usr/share/seclists/            # SecLists (if installed)
+
+# Quick check of what's installed:
+which hashcat john hydra aircrack-ng | xargs ls -la
+
+# GPU support on Kali:
+# For NVIDIA:
+sudo apt install -y nvidia-driver nvidia-cuda-toolkit
+# For AMD:
+sudo apt install -y ocl-icd-libopencl1 opencl-headers clinfo
+
+# Verify GPU detection:
+hashcat -I
+john --list=opencl-devices
 ```
 
 #### 🔄 Cross-Platform Helpers
@@ -423,16 +513,59 @@ hashcat -I               # Confirms CUDA/OpenCL back-ends are available
 
 ---
 
-## 🔍 Windows vs WSL Tool Comparison
+## 🔍 Platform Comparison for CTF Password Cracking
 
-| Task | Windows Native | WSL Required | Recommendation |
-|------|---------------|--------------|----------------|
-| **Hashcat GPU Cracking** | ✅ Works with vendor drivers | ✅ Full speed with CUDA/OpenCL | Preferred: WSL2 (GPU configured); Windows for smoke tests. |
-| **John with *2john tools** | ⚠️ Limited scripts | ✅ Full suite | Use WSL2 Jumbo build. |
-| **GUI Hex Editors** | ✅ HxD, 010 Editor | ❌ Terminal only | Use Windows native. |
-| **Steganography** | ⚠️ Basic tooling | ✅ Advanced CLI suites | Run initial scans in WSL, review results on Windows GUI. |
-| **Memory Forensics** | ✅ Volatility 3 (Windows build) | ✅ Python-pip install | Use WSL for scripting; Windows for quick GUI previews. |
-| **Network Analysis** | ✅ Wireshark GUI | ✅ tshark CLI | Capture/inspect with Wireshark; script in WSL. |
+### Feature Comparison Table
+
+| Platform | Best For | Setup Time | Pre-installed Tools | GPU Support | Learning Curve |
+|----------|----------|------------|-------------------|-------------|----------------|
+| **Kali Linux** | CTF competitions | 5 minutes | 95% of tools | ✅ Full | Low (all ready) |
+| **WSL2 + Windows** | Hybrid workflows | 30 minutes | None (manual) | ✅ With setup | Medium |
+| **Windows Native** | GUI tools | 20 minutes | None (manual) | ✅ Native | Low |
+| **Ubuntu/Debian** | Custom setups | 45 minutes | Basic only | ✅ With drivers | Medium |
+| **Docker** | Quick testing | 10 minutes | None (manual) | ⚠️ Limited | Low |
+
+### Tool Availability Comparison
+
+| Task | Kali Linux | Windows Native | WSL2 | Ubuntu | Notes |
+|------|------------|---------------|------|--------|-------|
+| **Hashcat GPU** | ✅ Pre-installed | ✅ Native drivers | ✅ With setup | ⚠️ Manual install | Kali has it ready |
+| **John Jumbo** | ✅ Pre-installed | ⚠️ Limited | ✅ Full suite | ⚠️ Compile needed | Kali includes *2john |
+| **Wordlists** | ✅ rockyou ready | ❌ Download | ❌ Download | ❌ Download | Kali: /usr/share/wordlists |
+| **hydra/medusa** | ✅ Pre-installed | ❌ Not available | ✅ Install | ✅ Install | Network crackers |
+| **GUI Hex Editors** | ⚠️ Terminal only | ✅ HxD, 010 | ❌ Terminal | ⚠️ Terminal | Windows wins here |
+| **Steganography** | ✅ Full suite | ⚠️ Basic | ✅ Install | ✅ Install | Kali most complete |
+| **Memory Forensics** | ✅ Volatility3 | ✅ Native | ✅ Install | ✅ Install | All platforms work |
+| **Hash identification** | ✅ hashid, haiti | ❌ Manual | ⚠️ Install | ⚠️ Install | Kali has multiple |
+
+### Kali-Specific Advantages for CTF
+
+1. **Pre-configured Environment**
+   - All password cracking tools installed
+   - Wordlists ready at `/usr/share/wordlists/`
+   - Rules and masks at `/usr/share/hashcat/` and `/usr/share/john/`
+
+2. **CTF-Focused Tools**
+   ```bash
+   # Unique to Kali or pre-installed:
+   hash-identifier  # Identify hash types
+   haiti            # Advanced hash identification
+   cewl            # Custom wordlist generator
+   crunch          # Pattern-based wordlist generator
+   cupp            # User profile wordlist generator
+   fcrackzip       # Fast ZIP cracker
+   rarcrack        # RAR/ZIP/7z brute forcer
+   ```
+
+3. **Performance Optimizations**
+   - Kernel optimized for penetration testing
+   - Network stack tuned for security tools
+   - Minimal background services
+
+4. **Integration Benefits**
+   - Tools work together seamlessly
+   - Consistent file paths across installations
+   - Community scripts expect Kali structure
 
 ---
 
@@ -2090,17 +2223,53 @@ python3 ctf-password-cracker.py challenge.zip -v
 ## Tool Installation
 
 ### Quick Setup Commands
+
+#### Kali Linux (Recommended for CTF)
 ```bash
-# Ubuntu/Debian
-apt update
-apt install -y hashcat john binwalk exiftool p7zip-full
-apt install -y steghide wireshark tshark
-pip3 install volatility3
+# Kali has most tools pre-installed! Just update:
+sudo apt update && sudo apt full-upgrade -y
 
-# Kali Linux (most tools pre-installed)
-apt update && apt upgrade
+# Verify pre-installed tools:
+for tool in hashcat john hydra aircrack-ng binwalk exiftool steghide; do
+    echo -n "$tool: "
+    which $tool && $tool --version 2>/dev/null | head -1 || echo "Not installed"
+done
 
-# Additional tools
+# Install any missing tools (rare on Kali):
+sudo apt install -y hashcat john john-data wordlists
+sudo apt install -y binwalk exiftool p7zip-full
+sudo apt install -y steghide stegcracker pdfcrack
+
+# Additional Kali-specific tools:
+sudo apt install -y hash-identifier hashid haiti-hash
+sudo apt install -y cewl crunch rsmangler cupp
+sudo apt install -y fcrackzip rarcrack
+
+# Install SecLists (comprehensive wordlist collection):
+sudo apt install -y seclists
+# Location: /usr/share/seclists/
+
+# Install bkcrack for ZIP plaintext attacks:
+cd /opt
+sudo git clone https://github.com/kimci86/bkcrack.git
+cd bkcrack && sudo make && cd ..
+
+# Ruby tools:
+sudo gem install zsteg
+```
+
+#### Ubuntu/Debian (Standard Linux)
+```bash
+# Ubuntu/Debian need manual installation:
+sudo apt update
+sudo apt install -y hashcat john binwalk exiftool p7zip-full
+sudo apt install -y steghide wireshark tshark
+sudo pip3 install volatility3
+
+# Get rockyou wordlist:
+wget https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt
+
+# Additional tools:
 git clone https://github.com/kimci86/bkcrack.git
 cd bkcrack && make && cd ..
 pip3 install stegcracker
