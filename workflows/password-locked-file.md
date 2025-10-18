@@ -436,6 +436,38 @@ letmein
 "@ | Out-File -FilePath "C:\CTF-Tools\wordlists\ctf-common.txt"
 ```
 
+### Download Wordlists (WSL/Linux)
+```bash
+#!/bin/bash
+# WSL/Linux equivalent for downloading CTF wordlists
+
+# Create directory structure
+mkdir -p ~/CTF-Tools/wordlists
+
+# Download rockyou.txt
+wget -O ~/CTF-Tools/wordlists/rockyou.txt \
+    "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt"
+
+# Clone SecLists
+git clone https://github.com/danielmiessler/SecLists.git ~/CTF-Tools/wordlists/SecLists
+
+# Create common passwords file
+cat > ~/CTF-Tools/wordlists/ctf-common.txt << EOF
+password
+123456
+admin
+flag
+Password1
+password123
+admin123
+root
+toor
+letmein
+EOF
+
+echo "CTF wordlists downloaded successfully to ~/CTF-Tools/wordlists/"
+```
+
 ### Download Hashcat Rules (Windows)
 ```powershell
 # Create rules directory
@@ -451,6 +483,27 @@ $rules = @{
 foreach ($rule in $rules.GetEnumerator()) {
     Invoke-WebRequest -Uri $rule.Value -OutFile "C:\CTF-Tools\rules\$($rule.Key)"
 }
+```
+
+### Download Hashcat Rules (WSL/Linux)
+```bash
+#!/bin/bash
+# WSL/Linux equivalent for downloading Hashcat rules
+
+# Create rules directory
+mkdir -p ~/CTF-Tools/rules
+
+# Download rules
+wget -O ~/CTF-Tools/rules/OneRuleToRuleThemAll.rule \
+    "https://raw.githubusercontent.com/NotSoSecure/password_cracking_rules/master/OneRuleToRuleThemAll.rule"
+
+wget -O ~/CTF-Tools/rules/hob064.rule \
+    "https://raw.githubusercontent.com/praetorian-inc/Hob0Rules/master/hob064.rule"
+
+wget -O ~/CTF-Tools/rules/best64.rule \
+    "https://raw.githubusercontent.com/hashcat/hashcat/master/rules/best64.rule"
+
+echo "Hashcat rules downloaded successfully to ~/CTF-Tools/rules/"
 ```
 
 ---
