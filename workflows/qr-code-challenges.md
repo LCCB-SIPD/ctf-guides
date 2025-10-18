@@ -88,7 +88,8 @@ Kali Linux comes with many QR code tools pre-installed, making it the quickest p
 sudo apt update && sudo apt full-upgrade -y
 
 # Core QR decoders (some pre-installed)
-sudo apt install -y zbar-tools python3-pyzbar
+# Note: python3-pyzbar is not in Debian/Kali repositories - install via pip
+sudo apt install -y zbar-tools libzbar0 libzbar-dev
 sudo apt install -y python3-pil python3-opencv
 sudo apt install -y qrencode  # For generating QR codes
 
@@ -103,9 +104,15 @@ sudo apt install -y steghide stegcracker
 sudo apt install -y pngcheck
 
 # Python packages for QR analysis
-pip3 install pyzbar[scripts] pillow opencv-python numpy
-pip3 install qrcode[pil] requests base45 reedsolo
-pip3 install pyquirc zbarlight
+# Install pyzbar via pipx (recommended for standalone tools on Kali 2024.4+)
+pipx install pyzbar
+
+# For project work, create a virtual environment
+python3 -m venv .venv --system-site-packages
+source .venv/bin/activate
+pip install pillow opencv-python numpy
+pip install qrcode[pil] requests base45 reedsolo
+pip install pyquirc zbarlight
 
 # Install zsteg for LSB analysis (PNG/BMP)
 sudo gem install zsteg
