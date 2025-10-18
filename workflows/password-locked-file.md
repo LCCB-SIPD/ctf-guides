@@ -448,8 +448,19 @@ mkdir -p ~/CTF-Tools/wordlists
 wget -O ~/CTF-Tools/wordlists/rockyou.txt \
     "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt"
 
-# Clone SecLists
+# Clone SecLists (choose one of the following methods):
+
+# Method 1: Install via apt (recommended for Kali/Ubuntu)
+sudo apt update
+sudo apt -y install seclists
+# Creates symlink to standard location
+sudo ln -s /usr/share/seclists ~/CTF-Tools/wordlists/SecLists
+
+# Method 2: Clone to home directory (no sudo needed)
 git clone https://github.com/danielmiessler/SecLists.git ~/CTF-Tools/wordlists/SecLists
+
+# Method 3: Clone to system directory with sudo (alternative)
+# sudo git clone https://github.com/danielmiessler/SecLists.git /usr/share/wordlists/SecLists
 
 # Create common passwords file
 cat > ~/CTF-Tools/wordlists/ctf-common.txt << EOF
