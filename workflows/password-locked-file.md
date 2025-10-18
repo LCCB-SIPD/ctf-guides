@@ -340,8 +340,10 @@ sudo apt install -y steghide stegosuite outguess
 sudo gem install zsteg  # For PNG/BMP files
 
 # Install stegseek (significantly faster than stegcracker for steghide)
-wget https://github.com/RickdeJager/stegseek/releases/latest/download/stegseek_0.6-1.deb
-sudo dpkg -i stegseek_0.6-1.deb
+# Download to a writable location to avoid permission errors
+wget -P ~/Downloads https://github.com/RickdeJager/stegseek/releases/download/v0.6/stegseek_0.6-1.deb
+sudo dpkg -i ~/Downloads/stegseek_0.6-1.deb
+# If dependencies are missing, run: sudo apt-get install -f
 ```
 
 #### 🔄 **Python Cross-Platform**
