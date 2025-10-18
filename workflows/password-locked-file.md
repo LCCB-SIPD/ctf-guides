@@ -462,8 +462,10 @@ git clone https://github.com/danielmiessler/SecLists.git ~/CTF-Tools/wordlists/S
 # Method 3: Clone to system directory with sudo (alternative)
 # sudo git clone https://github.com/danielmiessler/SecLists.git /usr/share/wordlists/SecLists
 
-# Create common passwords file
-cat > ~/CTF-Tools/wordlists/ctf-common.txt << EOF
+# Create common passwords file (choose one of the following methods):
+
+# Method 1: Use sudo with tee (recommended for system directories)
+sudo tee ~/CTF-Tools/wordlists/ctf-common.txt > /dev/null << EOF
 password
 123456
 admin
@@ -475,6 +477,38 @@ root
 toor
 letmein
 EOF
+
+# Method 2: Create in home directory first, then copy (alternative)
+cat > ~/ctf-common.txt << EOF
+password
+123456
+admin
+flag
+Password1
+password123
+admin123
+root
+toor
+letmein
+EOF
+cp ~/ctf-common.txt ~/CTF-Tools/wordlists/ctf-common.txt
+rm ~/ctf-common.txt
+
+# Method 3: Start a root shell (for system-wide installation)
+# sudo -s
+# cat > /usr/share/wordlists/ctf-common.txt << EOF
+# password
+# 123456
+# admin
+# flag
+# Password1
+# password123
+# admin123
+# root
+# toor
+# letmein
+# EOF
+# exit
 
 echo "CTF wordlists downloaded successfully to ~/CTF-Tools/wordlists/"
 ```
@@ -772,7 +806,24 @@ exiftool * | grep -iE "comment|author|desc"
 
 # 3. (1 min) Try obvious passwords
 echo -e "password\n123456\nadmin\nflag" > quick.txt
-*2john target.* > hash.txt
+
+# IMPORTANT: Don't use wildcards with *2john tools
+# First identify the file type, then use the specific tool:
+file target.*  # Identify file type
+# Then use the appropriate tool:
+# zip2john target.zip > hash.txt
+# rar2john target.rar > hash.txt
+# 7z2john.pl target.7z > hash.txt
+# python pdf2john.py target.pdf > hash.txt
+
+# NOTE: You might encounter "command not found" errors with *2john tools
+# If this happens, see the "John the Ripper Issues" section for solutions
+
+# After extracting the hash, validate the format:
+head -1 hash.txt
+hashcat --example-hashes | less  # Compare with example formats
+
+# Then crack with John
 john hash.txt --wordlist=quick.txt
 
 # 4. (2 min) Context-specific
@@ -1367,6 +1418,8 @@ find /mnt/evidence -type f -mtime -7 -ls
 - Special characters need escaping in some tools
 - Some PDFs just have owner password (use qpdf)
 - Old Office files might just need XML editing
+- **Using wildcards with *2john tools** - use specific tool for your file type (see Tool-Specific Issues)
+- **\*2john utilities not in PATH** - install John the Ripper Jumbo or use full paths (see Tool-Specific Issues)
 
 ---
 
@@ -1603,6 +1656,108 @@ done >> dates.txt
 ## Tool-Specific Issues
 
 ### John the Ripper Issues
+
+**Problem: Using wildcards with *2john utilities**
+
+The command `*2john target.* > hash.txt` fails because **2john utilities don't support wildcard expansion** in that syntax. The shell tries to run a command literally called `*2john` on a file literally called `target.*`, which don't exist.
+
+**The Fix:**
+```bash
+# First, identify what file types you have
+ls -la
+file *
+
+# Then use the appropriate 2john tool:
+# For ZIP files:
+zip2john yourfile.zip > hash.txt
+
+# For RAR files:
+rar2john yourfile.rar > hash.txt
+
+# For 7z files:
+7z2john.pl yourfile.7z > hash.txt
+
+# For PDF files:
+python pdf2john.py yourfile.pdf > hash.txt
+```
+
+After extracting the hash, **validate the format** before cracking:
+```bash
+# Check what's in the hash file
+head -1 hash.txt
+
+# Compare against example formats
+hashcat --example-hashes | less
+
+# Then crack with John
+john hash.txt --wordlist=quick.txt
+```
+
+**Problem: *2john utilities not in PATH**
+
+The error "command not found" when running tools like `7z2john.pl` occurs because the *2john utilities are not in your system PATH by default. These tools are part of John the Ripper Jumbo distribution.
+
+**Solution 1: Install John the Ripper Jumbo (Recommended)**
+```bash
+# Clone John the Ripper Jumbo
+cd /opt
+sudo git clone https://github.com/openwall/john.git
+cd john/src
+sudo ./configure
+sudo make -j$(nproc)
+sudo make install
+
+# Copy 2john tools to PATH
+sudo cp ../run/*2john* /usr/local/bin/
+```
+
+**Solution 2: Use the Tool from Its Current Location**
+```bash
+# Find where 7z2john.pl is located
+find / -name "7z2john.pl" 2>/dev/null
+
+# Once found, use the full path:
+/path/to/7z2john.pl important_flags.7z > hash.txt
+```
+
+**Solution 3: Quick Kali/Ubuntu Fix**
+```bash
+# If on Kali/Ubuntu, update and install
+sudo apt update
+sudo apt install -y john john-data
+
+# The tools should be in /usr/share/john or /usr/sbin
+ls -la /usr/share/john/*2john*
+ls -la /usr/sbin/*2john*
+
+# Use with full path if needed:
+/usr/sbin/7z2john important_flags.7z > hash.txt
+```
+
+**Solution 4: Add to PATH Permanently**
+```bash
+# Add to your ~/.bashrc or ~/.zshrc
+echo 'export PATH="/opt/john/run:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Now the tools work directly
+7z2john.pl important_flags.7z > hash.txt
+```
+
+**After Extraction**
+```bash
+# Check what's in the hash file
+head -1 hash.txt
+
+# Validate against Hashcat examples (7-Zip is mode 11600)
+hashcat --example-hashes | grep -i 7z
+
+# Crack with John
+john hash.txt --wordlist=quick.txt
+
+# Or use Hashcat (faster with GPU)
+hashcat -m 11600 hash.txt quick.txt
+```
 
 **Problem: "No password hashes loaded"**
 ```bash
