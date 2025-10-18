@@ -2527,3 +2527,161 @@ Based on analysis of 1000+ CTF challenges:
 This workflow is provided as educational material for legitimate CTF competitions and security education only. Do not use for unauthorized access to protected files.
 
 Happy hunting! 🎯
+
+
+## Understanding Hash Extraction and Validation
+
+Here's a detailed breakdown of the process you ran and why each step matters:
+
+### **1. Check the Extracted Hash**
+
+```bash
+head -1 hash.txt
+```
+
+**Purpose:** Verify the hash extraction tool worked correctly and see the hash structure.[1]
+
+**What you saw:**
+```
+important_flags.7z:$7z$0$19$0$$16$abf16ecc35340a95534b87b0dfacd0b0$...
+```
+
+This confirms `7z2john.pl` worked—the hash format starts with `$7z$`, indicating 7-Zip encryption.[1]
+
+### **2. Validate Against Hashcat Examples**
+
+```bash
+hashcat --example-hashes | grep -i 7z
+```
+
+**Purpose:** Compare your hash structure against official Hashcat example hashes to **confirm the correct mode number**.[1]
+
+**What you should see:**
+```
+MODE: 11600
+TYPE: 7-Zip
+HASH: $7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00321533...
+```
+
+This tells you:
+- **Mode 11600** is for 7-Zip archives[1]
+- Your hash structure matches the example format[1]
+
+### **3. Crack with John (CPU)**
+
+```bash
+john hash.txt --wordlist=quick.txt
+```
+
+**What happened:**
+- John loaded the hash successfully (1 password hash)[1]
+- Cost parameters showed: **524,288 iterations** (intentionally slow)[1]
+- Tested all 4 passwords from `quick.txt`[1]
+- Found **0 matches** (`0g`)[1]
+
+### **4. Crack with Hashcat (GPU - Failed)**
+
+```bash
+hashcat -m 11600 hash.txt quick.txt
+```
+
+**What went wrong:**
+```
+Hashfile 'hash.txt' on line 1: Signature unmatched
+```
+
+This means the hash format John exported **doesn't exactly match** what Hashcat expects for mode 11600. The guide warns: "For container formats extracted via 2john, validate structure with `hashcat --example-hashes` to pick the correct mode and catch malformed lines early".[1]
+
+---
+
+## Essential Hashcat Modes for CTFs
+
+### **Archive Formats**
+
+| File Type | Tool | Hashcat Mode | Notes |
+|-----------|------|--------------|-------|
+| **ZIP (ZipCrypto)** | `zip2john` | 17200, 17210, 17225 | Vulnerable to known-plaintext attack—try `bkcrack` first[1] |
+| **ZIP (WinZip AES)** | `zip2john` | 13600 | Stronger encryption[1] |
+| **RAR3** | `rar2john` | 12500 | Older RAR format[1] |
+| **RAR5** | `rar2john` | 13000 | Modern RAR, PBKDF2-heavy (slow)[1] |
+| **7-Zip** | `7z2john.pl` | 11600 | AES-256 with high iteration count (very slow)[1] |
+
+### **Document Formats**
+
+| File Type | Tool | Hashcat Mode | Notes |
+|-----------|------|--------------|-------|
+| **PDF 1.1-1.3** | `pdf2john.py` | 10400 | Legacy RC4 (fast)[1] |
+| **PDF 1.4-1.6** | `pdf2john.py` | 10500 | RC4 with stronger key derivation[1] |
+| **PDF 1.7+ AES** | `pdf2john.py` | 10600, 10700 | Check revision flag in hash[1] |
+| **Office 97-2003** | `office2john.py` | 9700-9800 | Legacy (GPU-friendly)[1] |
+| **Office 2007** | `office2john.py` | 9400 | First AES iteration[1] |
+| **Office 2010** | `office2john.py` | 9500 | PBKDF2 100k rounds[1] |
+| **Office 2013+** | `office2john.py` | 9600 | PBKDF2 100k SHA-512[1] |
+
+### **Database & System**
+
+| File Type | Tool | Hashcat Mode | Notes |
+|-----------|------|--------------|-------|
+| **KeePass 2.x** | `keepass2john` | 13400 | Use `--keep-guessing` for transform rounds[1] |
+| **BitLocker** | `bitlocker2john` | 22100 | Requires metadata from .bek or image[1] |
+| **SSH private keys** | `ssh2john.py` | Various | Supports legacy and OpenSSH formats[1] |
+| **GPG/PGP** | `gpg2john` | 17900 | Extract passphrase hash[1] |
+
+***
+
+## Quick Command Reference
+
+### **For Your 7-Zip File**
+
+```bash
+# Extract hash (you already did this)
+/opt/john/run/7z2john.pl important_flags.7z > hash.txt
+
+# Validate format
+head -1 hash.txt
+hashcat --example-hashes | grep -A3 "MODE: 11600"
+
+# Crack with John (works, but slow)
+john hash.txt --wordlist=/usr/share/wordlists/rockyou.txt
+
+# Check progress
+john --show hash.txt
+```
+
+### **For Your ZIP File**
+
+```bash
+# Check encryption type
+zipinfo -v dogs_wearing_tools.zip | grep -i encrypt
+7z l -slt dogs_wearing_tools.zip | grep Method
+
+# Extract hash
+zip2john dogs_wearing_tools.zip > zip_hash.txt
+
+# Identify correct mode
+head -1 zip_hash.txt
+hashcat --example-hashes | grep -i zip
+
+# Crack based on encryption type:
+# If PKZIP/ZipCrypto:
+hashcat -m 17200 zip_hash.txt rockyou.txt
+# If WinZip AES:
+hashcat -m 13600 zip_hash.txt rockyou.txt
+```
+
+***
+
+## Why Your Attack Failed
+
+The guide emphasizes a critical CTF rule: **"In CTFs, if brute force is taking too long, you probably missed a clue!"**[1]
+
+Your `quick.txt` with only 4 passwords was a **test wordlist**, not a real attack. The guide recommends:[1]
+
+1. **Use rockyou.txt** (14M+ passwords)[1]
+2. **Extract clues** from challenge context (filenames, metadata, descriptions)[1]
+3. **Build custom wordlists** using `cewl`, context words, and patterns[1]
+4. **Apply rules** to mutate candidates (`--rules=best64`)[1]
+
+The **524,288 iterations** on your 7-Zip file mean it's **intentionally slow** (~4 passwords/second). You need the **right password**, not brute force.[1]
+
+[1](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/124864904/2f2822ee-4afc-4618-b0bf-aad833a9c788/paste-2.txt)
