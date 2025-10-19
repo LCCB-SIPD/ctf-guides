@@ -52,6 +52,8 @@ sudo apt install -y pdfcrack qpdf poppler-utils
 # Update John the Ripper to Jumbo version for latest *2john tools
 cd /opt
 sudo git clone https://github.com/openwall/john.git
+sudo apt install build-essential
+sudo apt install libssl-dev zlib1g-dev libbz2-dev libgmp-dev libpcap-dev
 cd john/src
 sudo ./configure && sudo make -j$(nproc)
 sudo make install
