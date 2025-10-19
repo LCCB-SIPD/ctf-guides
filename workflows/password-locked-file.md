@@ -60,6 +60,7 @@ sudo make install
 
 # Kali's default wordlists location
 ls -la /usr/share/wordlists/
+sudo gunzip /usr/share/wordlists/rockyou.txt.gz
 # rockyou.txt is already extracted at: /usr/share/wordlists/rockyou.txt
 ```
 
